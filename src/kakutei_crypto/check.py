@@ -31,7 +31,7 @@ def check(entries: list[Entry]) -> list[Issue]:
         except LedgerError as exc:
             issues.append(Issue("error", entry.id, str(exc)))
             continue
-        for asset, qty, _ in fx.acquisitions:
+        for asset, qty, _ in fx.acquisitions + fx.openings:
             held[asset] += qty
         shortfalls = []
         for asset, qty, _ in fx.disposals:

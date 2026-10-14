@@ -66,6 +66,7 @@ class YearResult:
 class _Effects:
     acquisitions: list[tuple[str, Decimal, Decimal]] = field(default_factory=list)
     disposals: list[tuple[str, Decimal, Decimal]] = field(default_factory=list)
+    openings: list[tuple[str, Decimal, Decimal]] = field(default_factory=list)
     fee_expense: Decimal = ZERO
     reward_income: Decimal = ZERO
 
@@ -115,7 +116,8 @@ def _effects(entry: Entry) -> _Effects:
     elif kind == "fork":
         acquire(entry.in_asset, in_qty, ZERO)
     elif kind == "opening":
-        acquire(entry.in_asset, in_qty, _require_value(entry))
+        if entry.in_asset and entry.in_asset != JPY and in_qty:
+            fx.openings.append((entry.in_asset, in_qty, _require_value(entry)))
     else:  # transfer_in / transfer_out：自分の口座間の移動は所得に影響しない
         fx.fee_expense += fee_in_jpy
 
@@ -164,6 +166,13 @@ def calculate(entries: list[Entry], method: str = "total") -> tuple[list[YearRes
 
         for entry in by_year.get(year, []):
             fx = _effects(entry)
+            for asset, qty, cost in fx.openings:
+                r = row(asset)
+                r.A += qty
+                r.B += cost
+                moving_qty[asset] += qty
+                moving_book[asset] += cost
+                movements.append(Movement(entry.id, asset, "acquire", qty, cost))
             for asset, qty, cost in fx.acquisitions:
                 r = row(asset)
                 r.C += qty

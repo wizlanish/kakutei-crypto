@@ -180,3 +180,18 @@ def test_movements_record_every_acquisition_and_disposal():
     kinds = [(m.kind, m.qty) for m in movements]
     assert kinds == [("acquire", D("4")), ("acquire", D("2")), ("dispose", D("2")),
                      ("acquire", D("0.5")), ("dispose", D("3"))]
+
+
+def test_opening_entry_is_reported_as_year_start_balance():
+    entries = [e((2026, 1, 1), "opening", in_asset="BTC", in_qty=D("0.2"), jpy_value=D("2000000"))]
+    btc = only_year(calculate(entries, method="total")[0]).assets["BTC"]
+    assert (btc.A, btc.B, btc.C, btc.D) == (D("0.2"), D("2000000"), 0, 0)
+
+
+def test_total_method_year_end_value_has_no_division_residue():
+    # 506,000 × 0.505 ÷ 1.01 = 253,000 ちょうど。先に割ると 252,999 になりうる。
+    entries = [buy((2026, 1, 1), "ETH", "1", "500000"),
+               e((2026, 2, 1), "reward", in_asset="ETH", in_qty=D("0.01"), jpy_value=D("6000")),
+               sell((2026, 3, 1), "ETH", "0.505", "300000")]
+    eth = only_year(calculate(entries, method="total")[0]).assets["ETH"]
+    assert eth.I == D("253000")
