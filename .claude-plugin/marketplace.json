@@ -1,6 +1,9 @@
 {
   "name": "kakutei-crypto",
-  "owner": { "name": "kakutei-crypto contributors" },
+  "owner": {
+    "name": "wizlanish",
+    "url": "https://github.com/wizlanish"
+  },
   "metadata": {
     "description": "日本の暗号資産の確定申告（雑所得）をローカルで計算する",
     "version": "0.1.0"

@@ -42,7 +42,7 @@ $ kakutei calc ledger.csv manual/*.ledger.csv
 ## インストール
 
 ```bash
-git clone https://github.com/<OWNER>/kakutei-crypto.git
+git clone https://github.com/wizlanish/kakutei-crypto.git
 cd kakutei-crypto
 pip install .          # kakutei コマンドが使えるようになる
 ```
@@ -50,7 +50,7 @@ pip install .          # kakutei コマンドが使えるようになる
 Claude Code のプラグインとして使う場合:
 
 ```
-/plugin marketplace add <OWNER>/kakutei-crypto
+/plugin marketplace add wizlanish/kakutei-crypto
 /plugin install kakutei-crypto@kakutei-crypto
 ```
 
