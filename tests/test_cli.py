@@ -116,3 +116,12 @@ def test_empty_ledger_says_there_is_nothing_to_calculate(tmp_path, capsys):
     empty.write_text("id,timestamp,exchange,kind\n", encoding="utf-8")
     assert main(["calc", str(empty)]) == 0
     assert "計算対象の取引がありません" in capsys.readouterr().out
+
+
+def test_summary_amounts_are_right_aligned_by_display_width(tmp_path, capsys):
+    import unicodedata
+    ledger = import_fixtures(tmp_path, "okj_orders.csv")
+    assert main(["calc", str(ledger)]) == 0
+    rows = [l for l in capsys.readouterr().out.splitlines() if l.rstrip().endswith(" 円")]
+    width = lambda s: sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in s)
+    assert len(rows) == 5 and len({width(r) for r in rows}) == 1

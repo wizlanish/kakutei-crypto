@@ -1,6 +1,7 @@
 """計算結果の出力（端末表示と xlsx）。円は円未満切り捨てで表示する。"""
 from __future__ import annotations
 
+import unicodedata
 from decimal import ROUND_FLOOR, Decimal
 from pathlib import Path
 
@@ -18,6 +19,12 @@ _QTY = {"A", "C", "F", "H"}
 
 def yen(value: Decimal) -> int:
     return int(value.quantize(Decimal(1), rounding=ROUND_FLOOR))
+
+
+def _pad(text: str, width: int) -> str:
+    """全角文字を 2 桁として、表示幅 width まで右側を空白で埋める。"""
+    shown = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in text)
+    return text + " " * max(width - shown, 1)
 
 
 def qty(value: Decimal) -> str:
@@ -51,7 +58,7 @@ def render_text(results: list[YearResult], method: str) -> str:
                               for k, _ in _COLUMNS)
             lines.append(f"  {asset:<6} {cells}  収入={yen(r.proceeds):,}")
         for label, amount in summary_rows(result):
-            lines.append(f"  {label:<14} {amount:>15,} 円")
+            lines.append(f"  {_pad(label, 22)}{amount:>15,} 円")
         lines.append("")
     return "\n".join(lines)
 
