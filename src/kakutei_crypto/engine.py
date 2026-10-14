@@ -3,13 +3,13 @@
 欄記号 A〜I は国税庁「暗号資産の計算書」に合わせている:
   A/B 年始数量/金額、C/D 年中取得数量/金額、E 平均単価、F 譲渡数量、
   G 売却原価、H/I 年末数量/金額。
-I は円未満切り捨て、G = B + D − I（計算書と同じ恒等式）。
+I は円未満切り捨て、G = B + D − I（計算書と同じ恒等式）。I は割り算を最後に行う。
 """
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from decimal import ROUND_FLOOR, Decimal
+from decimal import ROUND_FLOOR, ROUND_HALF_EVEN, Decimal, localcontext
 from zoneinfo import ZoneInfo
 
 from .ledger import Entry
@@ -152,12 +152,22 @@ def _effects(entry: Entry) -> _Effects:
     return fx
 
 
+_RESIDUE = Decimal("1e-12")
+
+
 def _floor_yen(value: Decimal) -> Decimal:
-    return value.quantize(Decimal(1), rounding=ROUND_FLOOR)
+    """円未満切り捨て。割り算の残差（1e-12 未満）で整数が 1 円下がらないよう、先に丸めてから切り捨てる。"""
+    return value.quantize(_RESIDUE, rounding=ROUND_HALF_EVEN).quantize(Decimal(1), rounding=ROUND_FLOOR)
 
 
 def calculate(entries: list[Entry], method: str = "total") -> tuple[list[YearResult], list[Movement]]:
     """台帳から年ごとの所得を計算する。method は "total"（総平均法）か "moving"（移動平均法）。"""
+    with localcontext() as ctx:
+        ctx.prec = 60  # 割り算の残差を 1e-12 よりずっと小さく抑える
+        return _calculate(entries, method)
+
+
+def _calculate(entries: list[Entry], method: str) -> tuple[list[YearResult], list[Movement]]:
     if method not in ("total", "moving"):
         raise ValueError("method は total か moving です")
     ordered = sorted(entries, key=lambda e: (e.timestamp, e.id))
@@ -212,9 +222,10 @@ def calculate(entries: list[Entry], method: str = "total") -> tuple[list[YearRes
                     raise LedgerError(
                         f"{entry.id}: {asset} の保有数量 {held} に対して {qty} を払い出しています。"
                         f"取込み漏れか、opening（計算開始時点の保有）が必要です（{entry.source}）")
-                unit = moving_book[asset] / held
-                moving_book[asset] -= unit * qty
-                moving_qty[asset] = held - qty
+                remaining = held - qty
+                # 全量を払い出したら簿価は 0（割り算の残りを持ち越さない）
+                moving_book[asset] = moving_book[asset] * remaining / held if remaining else ZERO
+                moving_qty[asset] = remaining
                 r.F += qty
                 r.proceeds += proceeds
                 movements.append(Movement(entry.id, asset, "dispose", qty, proceeds))
@@ -223,12 +234,15 @@ def calculate(entries: list[Entry], method: str = "total") -> tuple[list[YearRes
 
         for asset, r in sorted(rows.items()):
             r.H = r.A + r.C - r.F
+            # I は「平均単価 × 数量」を先に掛けてから割る。E を先に求めると、
+            # 割り切れない単価で I が 1 円少なくなることがある。
             if method == "total":
                 pool = r.A + r.C
                 r.E = (r.B + r.D) / pool if pool else ZERO
+                r.I = _floor_yen((r.B + r.D) * r.H / pool) if pool else ZERO
             else:
                 r.E = moving_book[asset] / r.H if r.H else ZERO
-            r.I = _floor_yen(r.E * r.H)
+                r.I = _floor_yen(moving_book[asset]) if r.H else ZERO
             r.G = r.B + r.D - r.I
             result.assets[asset] = r
             result.proceeds += r.proceeds

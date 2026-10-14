@@ -62,3 +62,22 @@ def test_import_refuses_to_overwrite_existing_ledger_without_force(tmp_path, cap
     assert ledger.read_text(encoding="utf-8") == before
     assert "--force" in capsys.readouterr().err
     assert main(["import", str(FIX / "coincheck_youshiki1.csv"), "-o", str(ledger), "--force"]) == 0
+
+
+def test_xlsx_cells_are_numbers_not_text(tmp_path):
+    ledger = import_fixtures(tmp_path, "okj_orders.csv")
+    xlsx = tmp_path / "out.xlsx"
+    assert main(["calc", str(ledger), "--xlsx", str(xlsx)]) == 0
+    book = load_workbook(xlsx)
+    btc_row = [c.value for c in book["計算書_2026"][3]]
+    assert btc_row[0] == "BTC"
+    assert all(isinstance(v, (int, float)) for v in btc_row[1:])
+    detail = [c.value for c in book["明細"][2]]
+    assert isinstance(detail[6], (int, float)) and isinstance(detail[7], (int, float))
+
+
+def test_same_ledger_passed_twice_is_rejected_as_duplicate_ids(tmp_path):
+    import pytest
+    ledger = import_fixtures(tmp_path, "okj_orders.csv")
+    with pytest.raises(SystemExit, match="重複"):
+        main(["calc", str(ledger), str(ledger)])

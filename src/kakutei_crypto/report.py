@@ -29,6 +29,11 @@ def _cell(key: str, value: Decimal):
     return qty(value) if key in _QTY else yen(value)
 
 
+def _xlsx_cell(key: str, value: Decimal):
+    """xlsx には数値として書く（数量は Decimal のまま、金額は円未満切り捨て）。"""
+    return value.normalize() if key in _QTY else yen(value)
+
+
 def summary_rows(result: YearResult) -> list[tuple[str, int]]:
     return [("売却価額（収入）", yen(result.proceeds)),
             ("報酬等（収入）", yen(result.reward_income)),
@@ -62,7 +67,7 @@ def write_xlsx(results: list[YearResult], movements: list[Movement], entries: li
         sheet["A1"].font = bold
         sheet.append(["銘柄", *(f"{k} {label}" for k, label in _COLUMNS), "売却価額"])
         for asset, r in result.assets.items():
-            sheet.append([asset, *(_cell(k, getattr(r, k)) for k, _ in _COLUMNS), yen(r.proceeds)])
+            sheet.append([asset, *(_xlsx_cell(k, getattr(r, k)) for k, _ in _COLUMNS), yen(r.proceeds)])
         sheet.append([])
         for label, amount in summary_rows(result):
             sheet.append([label, amount])
@@ -74,5 +79,5 @@ def write_xlsx(results: list[YearResult], movements: list[Movement], entries: li
     for m in movements:
         e = by_id[m.entry_id]
         detail.append([e.id, e.timestamp.isoformat(), e.exchange, e.kind, m.asset,
-                       "取得" if m.kind == "acquire" else "譲渡", qty(m.qty), float(m.amount), e.source, e.note])
+                       "取得" if m.kind == "acquire" else "譲渡", m.qty.normalize(), m.amount, e.source, e.note])
     book.save(path)

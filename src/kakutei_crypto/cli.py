@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 from pathlib import Path
 
 from .check import check
@@ -16,8 +17,7 @@ def _load(paths: list[str]) -> list[Entry]:
     entries: list[Entry] = []
     for path in paths:
         entries.extend(read_ledger(path))
-    ids = [e.id for e in entries]
-    duplicates = sorted({i for i in ids if ids.count(i) > 1})
+    duplicates = sorted(i for i, n in Counter(e.id for e in entries).items() if n > 1)
     if duplicates:
         raise SystemExit(f"id が重複しています（同じファイルを二重に取り込んでいませんか）: {', '.join(duplicates[:5])}")
     return entries

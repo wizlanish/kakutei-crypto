@@ -195,3 +195,34 @@ def test_total_method_year_end_value_has_no_division_residue():
                sell((2026, 3, 1), "ETH", "0.505", "300000")]
     eth = only_year(calculate(entries, method="total")[0]).assets["ETH"]
     assert eth.I == D("253000")
+
+
+@pytest.mark.parametrize("method", ["total", "moving"])
+def test_year_end_value_is_exact_when_division_does_not_terminate(method):
+    # 62,000 × 1.4 ÷ 3.5 = 24,800 ちょうど。先に 62,000 ÷ 3.5 を求めると循環小数になり、24,799 に落ちる。
+    # 独立実装との突き合わせ（ランダム 3,000 台帳）で見つかったケース。
+    entries = [buy((2026, 1, 1), "ETH", "1.5", "12000"), buy((2026, 1, 2), "ETH", "2", "50000"),
+               sell((2026, 2, 1), "ETH", "2.1", "40000")]
+    eth = only_year(calculate(entries, method=method)[0]).assets["ETH"]
+    assert eth.I == D("24800")
+    assert eth.G == D("37200")
+
+
+def test_moving_book_value_has_no_residue_after_selling_everything():
+    # 全量を 2 回に分けて売ると Decimal では簿価に微小なマイナスが残り、後の 0 円取得（分裂）で
+    # 年末金額が -1 円になっていた（ランダム突き合わせで見つかったケースを縮小したもの）。
+    entries = [buy((2025, 1, 8), "BTC", "4.959", "5839193"),
+               sell((2025, 1, 19), "BTC", "1.994", "4865105"), sell((2025, 1, 21), "BTC", "2.965", "8051275"),
+               e((2025, 1, 29), "fork", in_asset="BTC", in_qty=D("4.677"))]
+    btc = only_year(calculate(entries, method="moving")[0], 2025).assets["BTC"]
+    assert (btc.H, btc.I, btc.G) == (D("4.677"), D("0"), D("5839193"))
+
+
+def test_moving_method_matches_exact_rational_arithmetic():
+    # 簿価 1,000 を 7 で割り続けても、年末金額は分数で厳密に計算した値と一致する。
+    entries = [buy((2026, 1, 1), "BTC", "7", "1000")]
+    entries += [sell((2026, 2, d), "BTC", "1", "200") for d in range(1, 4)]
+    entries += [buy((2026, 3, 1), "BTC", "0.3", "77")]
+    btc = only_year(calculate(entries, method="moving")[0]).assets["BTC"]
+    # 1000 × 4/7 = 571.428… → +77 = 648.428… → 切り捨て 648
+    assert btc.I == D("648")
