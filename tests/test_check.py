@@ -42,3 +42,17 @@ def test_review_notes_are_warnings():
                entry("b", 2, "buy", in_asset="BTC", in_qty=D(1), jpy_value=D(1),
                      note="注文履歴には手数料が含まれません")]
     assert levels(check(entries)) == {("warning", "i"), ("warning", "b")}
+
+
+def test_receive_without_matching_send_is_warning():
+    entries = [entry("in", 5, "transfer_in", in_asset="BTC", in_qty=D("0.002"))]
+    issues = check(entries)
+    assert levels(issues) == {("warning", "in")}
+    assert "送付" in issues[0].message
+
+
+def test_receive_matched_by_send_from_another_exchange_is_clean():
+    entries = [entry("b", 1, "buy", in_asset="ETH", in_qty=D(1), jpy_value=D(100)),
+               entry("out", 2, "transfer_out", out_asset="ETH", out_qty=D(1), fee_asset="ETH", fee_qty=D("0.01")),
+               entry("in", 3, "transfer_in", in_asset="ETH", in_qty=D("0.99"))]
+    assert check(entries) == []
