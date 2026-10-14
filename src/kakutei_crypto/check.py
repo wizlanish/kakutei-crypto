@@ -54,7 +54,8 @@ def _unmatched_receives(entries: list[Entry]) -> list[Issue]:
     sends = [e for e in entries if e.kind == "transfer_out"]
     used: set[str] = set()
     issues = []
-    for receive in sorted((e for e in entries if e.kind == "transfer_in"), key=lambda e: e.timestamp):
+    receives = (e for e in entries if e.kind == "transfer_in" and e.in_asset != "JPY")
+    for receive in sorted(receives, key=lambda e: e.timestamp):
         for send in sends:
             if (send.id not in used and send.out_asset == receive.in_asset and send.out_qty and receive.in_qty
                     and send.timestamp - _MATCH_AFTER <= receive.timestamp <= send.timestamp + _MATCH_BEFORE

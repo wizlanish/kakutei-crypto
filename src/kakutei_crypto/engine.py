@@ -77,8 +77,33 @@ def _require_value(entry: Entry) -> Decimal:
     return entry.jpy_value
 
 
+_NEEDS_IN = {"buy", "reward", "fork", "opening", "transfer_in", "swap"}
+_NEEDS_OUT = {"sell", "transfer_out", "swap"}
+
+
+def validate(entry: Entry) -> None:
+    """種別ごとに必須の項目と符号を確かめる。欠けた行が黙って所得を変えないようにする。"""
+    problems = []
+    for name in ("in_qty", "out_qty", "fee_qty", "jpy_value"):
+        value = getattr(entry, name)
+        if value is not None and (not value.is_finite() or value < 0):
+            problems.append(f"{name} は 0 以上の数値にしてください（{value}）")
+    if entry.kind in _NEEDS_IN and not (entry.in_asset and entry.in_qty):
+        problems.append(f"{entry.kind} には in_asset と正の in_qty が必要です")
+    if entry.kind in _NEEDS_OUT and not (entry.out_asset and entry.out_qty):
+        problems.append(f"{entry.kind} には out_asset と正の out_qty が必要です")
+    if entry.fee_qty and not entry.fee_asset:
+        problems.append("fee_qty があるのに fee_asset が空です")
+    if (entry.kind in ("buy", "swap") and entry.fee_qty and entry.fee_asset == entry.in_asset
+            and entry.in_qty is not None and entry.fee_qty >= entry.in_qty):
+        problems.append("取得した通貨で払った手数料が、取得数量以上です")
+    if problems:
+        raise LedgerError(f"{entry.id}: {'; '.join(problems)}（{entry.source}）")
+
+
 def _effects(entry: Entry) -> _Effects:
     """1 件の取引を、銘柄ごとの取得・譲渡と円の損益項目に分解する。"""
+    validate(entry)
     fx = _Effects()
     fee_qty = entry.fee_qty.copy_abs() if entry.fee_qty else ZERO
     fee_in_jpy = fee_qty if entry.fee_asset == JPY else ZERO

@@ -10,6 +10,9 @@ from dataclasses import dataclass, fields
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+JST = ZoneInfo("Asia/Tokyo")
 
 KINDS = ("buy", "sell", "swap", "reward", "fork", "transfer_in", "transfer_out", "opening")
 
@@ -79,7 +82,9 @@ def read_ledger(path: str | Path) -> list[Entry]:
             for field in fields(Entry):
                 raw = row.get(field.name, "") or ""
                 if field.name == "timestamp":
-                    kwargs[field.name] = datetime.fromisoformat(raw)
+                    stamp = datetime.fromisoformat(raw)
+                    # オフセットのない時刻は JST とみなす（実行環境のタイムゾーンに左右されないように）
+                    kwargs[field.name] = stamp if stamp.tzinfo else stamp.replace(tzinfo=JST)
                 elif field.name in _DECIMAL_FIELDS:
                     kwargs[field.name] = parse_decimal(raw)
                 else:

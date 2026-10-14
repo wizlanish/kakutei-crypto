@@ -2,6 +2,8 @@ from datetime import datetime
 from decimal import Decimal as D
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from kakutei_crypto.check import check
 from kakutei_crypto.ledger import Entry
 
@@ -55,4 +57,22 @@ def test_receive_matched_by_send_from_another_exchange_is_clean():
     entries = [entry("b", 1, "buy", in_asset="ETH", in_qty=D(1), jpy_value=D(100)),
                entry("out", 2, "transfer_out", out_asset="ETH", out_qty=D(1), fee_asset="ETH", fee_qty=D("0.01")),
                entry("in", 3, "transfer_in", in_asset="ETH", in_qty=D("0.99"))]
+    assert check(entries) == []
+
+
+@pytest.mark.parametrize("bad", [
+    dict(kind="sell", out_asset="BTC", out_qty=None, jpy_value=D(150)),          # 数量なしの売却
+    dict(kind="sell", out_asset="BTC", out_qty=D("-0.5"), jpy_value=D(150)),     # 負の数量
+    dict(kind="buy", in_asset="BTC", in_qty=D("0.001"), jpy_value=D(1),
+         fee_asset="BTC", fee_qty=D("0.002")),                                   # 手数料が取得数量を超える
+    dict(kind="transfer_out", out_asset="BTC", out_qty=D("0.1"), fee_qty=D(5)),  # 手数料の資産が空
+    dict(kind="swap", out_asset="BTC", out_qty=D("0.1"), jpy_value=D(10)),       # 交換で受け取り側がない
+])
+def test_malformed_rows_are_errors(bad):
+    entries = [entry("b", 1, "buy", in_asset="BTC", in_qty=D(1), jpy_value=D(100)), entry("x", 2, **bad)]
+    assert ("error", "x") in levels(check(entries))
+
+
+def test_jpy_deposit_is_not_an_unmatched_receive():
+    entries = [entry("jpy", 1, "transfer_in", in_asset="JPY", in_qty=D(100000))]
     assert check(entries) == []

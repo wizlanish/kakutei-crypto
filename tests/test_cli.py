@@ -52,3 +52,13 @@ def test_calc_accepts_multiple_ledgers_and_moving_method(tmp_path, capsys):
     assert main(["import", str(FIX / "coincheck_youshiki1.csv"), "-o", str(b)]) == 0
     assert main(["calc", str(a), str(b), "--method", "moving", "--year", "2026"]) == 0
     assert "移動平均法" in capsys.readouterr().out
+
+
+def test_import_refuses_to_overwrite_existing_ledger_without_force(tmp_path, capsys):
+    ledger = import_fixtures(tmp_path, "okj_orders.csv")
+    ledger.write_text(ledger.read_text(encoding="utf-8") + "", encoding="utf-8")
+    before = ledger.read_text(encoding="utf-8")
+    assert main(["import", str(FIX / "coincheck_youshiki1.csv"), "-o", str(ledger)]) == 1
+    assert ledger.read_text(encoding="utf-8") == before
+    assert "--force" in capsys.readouterr().err
+    assert main(["import", str(FIX / "coincheck_youshiki1.csv"), "-o", str(ledger), "--force"]) == 0

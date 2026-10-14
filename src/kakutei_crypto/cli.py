@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from .check import check
 from .engine import calculate
@@ -23,6 +24,10 @@ def _load(paths: list[str]) -> list[Entry]:
 
 
 def cmd_import(args: argparse.Namespace) -> int:
+    if Path(args.output).exists() and not args.force:
+        print(f"{args.output} は既に存在します。手で直した行が消えないよう、上書きしません。"
+              f"別のファイル名に出力するか、上書きしてよければ --force を付けてください。", file=sys.stderr)
+        return 1
     entries: list[Entry] = []
     unknown = []
     for path in args.files:
@@ -75,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("import", help="交換業者のファイルを統一台帳に変換する")
     p.add_argument("files", nargs="+")
     p.add_argument("-o", "--output", default="ledger.csv")
+    p.add_argument("--force", action="store_true", help="既存の出力ファイルを上書きする")
     p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("check", help="台帳の整合性をチェックする")

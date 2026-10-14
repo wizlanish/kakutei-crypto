@@ -35,3 +35,13 @@ def test_ledger_round_trip_preserves_entries_sorted_by_time(tmp_path):
 def test_unknown_kind_is_rejected():
     with pytest.raises(ValueError, match="kind"):
         Entry(id="x", timestamp=datetime(2026, 1, 1, tzinfo=JST), exchange="okj", kind="magic")
+
+
+def test_timestamp_without_offset_is_read_as_jst(tmp_path):
+    path = tmp_path / "manual.csv"
+    path.write_text("id,timestamp,exchange,kind,in_asset,in_qty,out_asset,out_qty,jpy_value,fee_asset,fee_qty,source,note\n"
+                    "a,2026-12-31T23:30:00,x,buy,BTC,1,,,100,,,,\n"
+                    "b,2026-12-31T10:00:00+09:00,x,buy,BTC,1,,,100,,,,\n", encoding="utf-8")
+    entries = read_ledger(path)
+    assert [e.timestamp.utcoffset().total_seconds() for e in entries] == [9 * 3600, 9 * 3600]
+    assert entries[-1].timestamp.year == 2026
