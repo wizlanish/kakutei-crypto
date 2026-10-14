@@ -37,6 +37,10 @@ def cmd_import(args: argparse.Namespace) -> int:
             unknown.append(path)
             print(f"未対応: {exc}", file=sys.stderr)
             continue
+        except (OSError, ValueError, KeyError) as exc:
+            unknown.append(path)
+            print(f"読めません: {path}: {exc}", file=sys.stderr)
+            continue
         print(f"{path}: {len(parsed)} 件")
         entries.extend(parsed)
     write_ledger(entries, args.output)
@@ -60,6 +64,9 @@ def cmd_check(args: argparse.Namespace) -> int:
 
 def cmd_calc(args: argparse.Namespace) -> int:
     entries = _load(args.ledgers)
+    if not entries:
+        print("計算対象の取引がありません。")
+        return 0
     if not _report_issues(entries):
         print("エラーを解消するまで計算しません。")
         return 1
@@ -96,7 +103,11 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(func=cmd_calc)
 
     args = parser.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except (OSError, ValueError) as exc:  # 読めない台帳・壊れた行
+        print(f"エラー: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

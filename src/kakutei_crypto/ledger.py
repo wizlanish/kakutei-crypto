@@ -77,17 +77,25 @@ def write_ledger(entries: list[Entry], path: str | Path) -> None:
 def read_ledger(path: str | Path) -> list[Entry]:
     entries = []
     with open(path, encoding="utf-8-sig", newline="") as f:
-        for row in csv.DictReader(f):
-            kwargs: dict[str, object] = {}
-            for field in fields(Entry):
-                raw = row.get(field.name, "") or ""
-                if field.name == "timestamp":
-                    stamp = datetime.fromisoformat(raw)
-                    # オフセットのない時刻は JST とみなす（実行環境のタイムゾーンに左右されないように）
-                    kwargs[field.name] = stamp if stamp.tzinfo else stamp.replace(tzinfo=JST)
-                elif field.name in _DECIMAL_FIELDS:
-                    kwargs[field.name] = parse_decimal(raw)
-                else:
-                    kwargs[field.name] = raw
-            entries.append(Entry(**kwargs))
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                entries.append(_entry_from_row(row))
+            except (ValueError, TypeError) as exc:
+                raise ValueError(f"{Path(path).name}#{reader.line_num}: {exc}") from exc
     return sorted(entries, key=lambda e: (e.timestamp, e.id))
+
+
+def _entry_from_row(row: dict[str, str]) -> Entry:
+    kwargs: dict[str, object] = {}
+    for field in fields(Entry):
+        raw = row.get(field.name, "") or ""
+        if field.name == "timestamp":
+            stamp = datetime.fromisoformat(raw)
+            # オフセットのない時刻は JST とみなす（実行環境のタイムゾーンに左右されないように）
+            kwargs[field.name] = stamp if stamp.tzinfo else stamp.replace(tzinfo=JST)
+        elif field.name in _DECIMAL_FIELDS:
+            kwargs[field.name] = parse_decimal(raw)
+        else:
+            kwargs[field.name] = raw
+    return Entry(**kwargs)

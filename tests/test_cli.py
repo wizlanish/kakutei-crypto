@@ -81,3 +81,38 @@ def test_same_ledger_passed_twice_is_rejected_as_duplicate_ids(tmp_path):
     ledger = import_fixtures(tmp_path, "okj_orders.csv")
     with pytest.raises(SystemExit, match="重複"):
         main(["calc", str(ledger), str(ledger)])
+
+
+def test_missing_input_file_is_a_clear_error(tmp_path, capsys):
+    assert main(["import", str(tmp_path / "nope.csv"), "-o", str(tmp_path / "l.csv")]) == 2
+    assert "nope.csv" in capsys.readouterr().err
+
+
+def test_shift_jis_csv_is_readable(tmp_path):
+    src = (FIX / "okj_orders.csv").read_text(encoding="utf-8-sig")
+    sjis = tmp_path / "注文履歴_sjis.csv"
+    sjis.write_bytes(src.encode("cp932"))
+    ledger = tmp_path / "l.csv"
+    assert main(["import", str(sjis), "-o", str(ledger)]) == 0
+    assert ledger.read_text(encoding="utf-8").count("\n") == 3
+
+
+def test_pdf_given_to_import_is_reported_as_unsupported(tmp_path, capsys):
+    pdf = tmp_path / "report.pdf"
+    pdf.write_bytes(b"%PDF-1.7\n")
+    assert main(["import", str(pdf), "-o", str(tmp_path / "l.csv")]) == 2
+    assert "report.pdf" in capsys.readouterr().err
+
+
+def test_malformed_ledger_reports_file_and_line(tmp_path, capsys):
+    bad = tmp_path / "bad.csv"
+    bad.write_text("id,timestamp,exchange,kind\nx,not-a-date,okj,buy\n", encoding="utf-8")
+    assert main(["check", str(bad)]) == 2
+    assert "bad.csv#2" in capsys.readouterr().err
+
+
+def test_empty_ledger_says_there_is_nothing_to_calculate(tmp_path, capsys):
+    empty = tmp_path / "empty.csv"
+    empty.write_text("id,timestamp,exchange,kind\n", encoding="utf-8")
+    assert main(["calc", str(empty)]) == 0
+    assert "計算対象の取引がありません" in capsys.readouterr().out
