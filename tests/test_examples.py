@@ -5,11 +5,11 @@ import pytest
 
 from kakutei_crypto.cli import main
 
-EXAMPLE = Path(__file__).parent.parent / "examples" / "yamada-2026"
+EXAMPLE = Path(__file__).parent.parent / "examples" / "yamada-2025"
 
 
 @pytest.mark.parametrize("method, income", [("total", "722,400"), ("moving", "722,900")])
-def test_yamada_2026_matches_hand_calculation(tmp_path, capsys, method, income):
+def test_yamada_2025_matches_hand_calculation(tmp_path, capsys, method, income):
     ledger = tmp_path / "ledger.csv"
     assert main(["import", *map(str, sorted(EXAMPLE.glob("*.csv"))), "-o", str(ledger)]) == 0
     manual = map(str, sorted((EXAMPLE / "manual").glob("*.ledger.csv")))

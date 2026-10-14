@@ -1,0 +1,2 @@
+id,timestamp,exchange,kind,in_asset,in_qty,out_asset,out_qty,jpy_value,fee_asset,fee_qty,source,note
+bitflyer-2025-11-p2-1,2025-11-20T12:00:00+09:00,bitflyer,reward,POL,100,,,1400,,,bitflyer_月次報告書_2025-11.pdf p.2,キャンペーン付与。評価レート 14.00 円（報告書記載の参考値）を時価として使用

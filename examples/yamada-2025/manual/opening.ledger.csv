@@ -1,0 +1,2 @@
+id,timestamp,exchange,kind,in_asset,in_qty,out_asset,out_qty,jpy_value,fee_asset,fee_qty,source,note
+opening-2024-BTC,2025-01-01T00:00:00+09:00,okj,opening,BTC,0.2,,,2000000,,,2024年分の計算書 I 欄,前年末の繰越（2024年分の計算書より）

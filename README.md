@@ -7,7 +7,7 @@
 
 ```
 $ kakutei calc ledger.csv manual/*.ledger.csv
-■ 2026年分 暗号資産の計算書（総平均法）
+■ 2025年分 暗号資産の計算書（総平均法）
   BTC    A=0.2  B=2,000,000  C=0.1  D=1,500,000  E=11,666,666  F=0.15  G=1,750,000  H=0.15  I=1,750,000  収入=2,400,000
   ETH    A=0  B=0  C=1.01  D=506,000  E=500,990  F=0.505  G=253,000  H=0.505  I=253,000  収入=310,000
   ...
@@ -36,7 +36,7 @@ $ kakutei calc ledger.csv manual/*.ledger.csv
   - 2-8: 2 つの交換業者をまたいだ所得 **2,189,000 円**
   - 1-3（交換）、1-5（購入手数料）、1-6（分裂）、1-7（ステーキング報酬）
 - 金額・数量はすべて `Decimal`。float は使いません。
-- 合成データの例（`examples/yamada-2026/`）は、手計算の過程を [`EXPECTED.md`](examples/yamada-2026/EXPECTED.md) に書き、テストで一致を確認しています。
+- 合成データの例（`examples/yamada-2025/`）は、手計算の過程を [`EXPECTED.md`](examples/yamada-2025/EXPECTED.md) に書き、テストで一致を確認しています。
 - `kakutei check` が、時価の欠落・保有数量のマイナス（取込み漏れ）・対応する送付のない受取を検出し、**エラーがある限り計算しません**。
 
 ## インストール
@@ -64,7 +64,7 @@ Claude がファイルを確認し、既知形式は取り込み、PDF などは
 ### コマンドだけで
 
 ```bash
-kakutei import ~/税金/2026/*.csv -o ledger.csv       # 既知形式を統一台帳に
+kakutei import ~/税金/2025/*.csv -o ledger.csv       # 既知形式を統一台帳に
 kakutei check  ledger.csv manual/*.ledger.csv          # 取込み漏れ・時価の欠落をチェック
 kakutei calc   ledger.csv manual/*.ledger.csv --xlsx 計算書.xlsx            # 総平均法
 kakutei calc   ledger.csv manual/*.ledger.csv --method moving              # 移動平均法
@@ -73,8 +73,8 @@ kakutei calc   ledger.csv manual/*.ledger.csv --method moving              # 移
 例をそのまま試す:
 
 ```bash
-kakutei import examples/yamada-2026/*.csv -o /tmp/ledger.csv
-kakutei calc /tmp/ledger.csv examples/yamada-2026/manual/*.ledger.csv
+kakutei import examples/yamada-2025/*.csv -o /tmp/ledger.csv
+kakutei calc /tmp/ledger.csv examples/yamada-2025/manual/*.ledger.csv
 ```
 
 ### 対応している形式
