@@ -1,0 +1,5 @@
+{
+  "name": "kakutei-crypto",
+  "version": "0.1.0",
+  "description": "交換業者の CSV / PDF を統一台帳にし、総平均法・移動平均法で暗号資産の雑所得を計算する"
+}
